@@ -1,29 +1,91 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './Contact.css';
+// src/pages/Contact.jsx
+import React, { useState, useContext } from "react";
+import { useNavigate } from "react-router-dom";
+import { apiFetch } from "../api/fetchClient";
+import { AuthContext } from "../components/Common/AuthProvider";
+import "./Contact.css";
 
-const Contact = () => {
+export default function Contact() {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
 
-  // Form state
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    contactNumber: '',
-    email: '',
-    message: ''
+    firstName: user?.name?.split(" ")?.[0] || "",
+    lastName: user?.name?.split(" ")?.slice(1).join(" ") || "",
+    contactNumber: "",
+    email: user?.email || "",
+    message: "",
   });
 
-  // Handle input changes
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
   const handleChange = (e) => {
-    setFormData({...formData, [e.target.name]: e.target.value});
+    setError("");
+    setSuccess("");
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle form submit
-  const handleSubmit = (e) => {
+  const validate = () => {
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      setError("Please provide your full name.");
+      return false;
+    }
+    if (!formData.email.trim()) {
+      setError("Email is required.");
+      return false;
+    }
+    if (!formData.message.trim()) {
+      setError("Please enter a message.");
+      return false;
+    }
+    return true;
+  };
+
+  const resetForm = () => {
+    setFormData({
+      firstName: user?.name?.split(" ")?.[0] || "",
+      lastName: user?.name?.split(" ")?.slice(1).join(" ") || "",
+      contactNumber: "",
+      email: user?.email || "",
+      message: "",
+    });
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form Data Submitted:', formData); // For now, just log the data
-    navigate('/'); // Redirect to Home Page
+    setError("");
+    setSuccess("");
+
+    if (!validate()) return;
+
+    setLoading(true);
+    try {
+      // POST to backend; backend should accept { firstname, lastname, contactNumber, email, message }
+      const payload = {
+        firstname: formData.firstName,
+        lastname: formData.lastName,
+        contactNumber: formData.contactNumber,
+        email: formData.email,
+        message: formData.message,
+      };
+
+      await apiFetch("/api/contacts", { method: "POST", body: payload });
+
+      setSuccess("Message sent successfully.");
+      resetForm();
+
+      // optional: redirect after a short delay
+      setTimeout(() => {
+        navigate("/");
+      }, 900);
+    } catch (err) {
+      setError(err.message || "Failed to send message. Try again later.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -40,7 +102,10 @@ const Contact = () => {
         </div>
 
         {/* Contact Form */}
-        <form className="contact-form" onSubmit={handleSubmit}>
+        <form className="contact-form" onSubmit={handleSubmit} noValidate>
+          {error && <div className="form-error">{error}</div>}
+          {success && <div className="form-success">{success}</div>}
+
           <div className="form-row">
             <input
               type="text"
@@ -59,6 +124,7 @@ const Contact = () => {
               required
             />
           </div>
+
           <input
             type="text"
             name="contactNumber"
@@ -66,6 +132,7 @@ const Contact = () => {
             value={formData.contactNumber}
             onChange={handleChange}
           />
+
           <input
             type="email"
             name="email"
@@ -74,6 +141,7 @@ const Contact = () => {
             onChange={handleChange}
             required
           />
+
           <textarea
             name="message"
             placeholder="Your Message"
@@ -81,11 +149,25 @@ const Contact = () => {
             onChange={handleChange}
             required
           />
-          <button type="submit">Send Message</button>
+
+          <div className="form-actions">
+            <button type="submit" disabled={loading}>
+              {loading ? "Sending..." : "Send Message"}
+            </button>
+            <button
+              type="button"
+              className="btn-secondary"
+              onClick={() => {
+                resetForm();
+                setError("");
+                setSuccess("");
+              }}
+            >
+              Reset
+            </button>
+          </div>
         </form>
       </div>
     </div>
   );
-};
-
-export default Contact;
+}

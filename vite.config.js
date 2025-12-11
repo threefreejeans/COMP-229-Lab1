@@ -1,21 +1,11 @@
-// import { defineConfig } from 'vite'
-// import react from '@vitejs/plugin-react'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
 
-// // https://vite.dev/config/
-// export default defineConfig({
-//   plugins: [react()],
-// })
-
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    alias: {
-      react: path.resolve('./node_modules/react'),
-      'react-dom': path.resolve('./node_modules/react-dom')
-    }
-  }
+  // use default SPA behavior; no custom rollupOptions
+  build: {
+    outDir: "dist", // optional (default is "dist" anyway)
+  },
 });
